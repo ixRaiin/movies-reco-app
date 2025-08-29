@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* --- Theme tokens (Tailwind v4 @theme) --- */
+@theme {
+  --color-background: #0B0B0F;
+  --color-background-secondary: #1A1B2E;
+  --color-background-card: #101522;
+
+  --color-neon-cyan: #00E5FF;
+  --color-neon-violet: #8B5CFF;
+  --color-neon-magenta: #FF2E9A;
+  --color-neon-red: #FF4D4D;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #E5E7EB;
+  --color-text-muted: #9CA3AF;
+
+  --shadow-glass: 0 4px 20px rgba(0,0,0,.6);
+  --shadow-neon-cyan: 0 0 12px rgba(0,229,255,.7);
+  --shadow-neon-violet: 0 0 12px rgba(139,92,255,.6);
+}
+
+/* --- Utilities (v4 uses @utility) --- */
+@utility overlay-glass {
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  background-color: rgba(255,255,255,0.08);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-glass);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+/* Gradient helpers */
+@layer utilities {
+  .bg-grad-cyan-violet { background-image: linear-gradient(to bottom right, #00E5FF, #8B5CFF, #1A1B2E); }
+  .bg-grad-violet-magenta { background-image: linear-gradient(to bottom right, #8B5CFF, #FF2E9A, #0B0B0F); }
+  .bg-grad-orange-cyan { background-image: linear-gradient(to bottom right, #FF4D4D, #FF2E9A, #00E5FF); }
+  .bg-radial-aurora {
+    background-image:
+      radial-gradient(60% 60% at 70% 30%, rgba(0,229,255,.35), transparent 60%),
+      radial-gradient(50% 50% at 20% 70%, rgba(255,46,154,.25), transparent 60%);
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
