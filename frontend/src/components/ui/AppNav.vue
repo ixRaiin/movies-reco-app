@@ -1,3 +1,4 @@
+<!-- src/components/ui/AppNav.vue -->
 <template>
   <!-- Sticky neon-glass navbar -->
   <header
@@ -68,6 +69,7 @@
 
         <!-- Mobile menu button -->
         <button
+          type="button"
           class="md:hidden inline-flex items-center justify-center p-2 rounded-md
                  border border-transparent hover:border-neon-cyan
                  hover:shadow-[var(--shadow-neon-cyan)] transition"
@@ -86,7 +88,7 @@
       </div>
 
       <!-- Mobile sheet -->
-      <transition name="fade">
+      <Transition name="fade">
         <nav
           v-if="open"
           id="mobile-menu"
@@ -113,18 +115,20 @@
             </span>
           </RouterLink>
         </nav>
-      </transition>
+      </Transition>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { RouterLink } from 'vue-router' // 👈 add this for TS + template inference
 
 const open = ref(false)
 const scrolled = ref(false)
 
-const navItems = [
+type NavItem = { to: string; label: string }
+const navItems: NavItem[] = [
   { to: '/', label: 'Home' },
   { to: '/search', label: 'Search' },
   { to: '/mood', label: 'Mood' },

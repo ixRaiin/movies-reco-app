@@ -1,11 +1,12 @@
 <template>
-  <div class="min-h-screen bg-background text-text-primary">
+  <div id="app" class="min-h-screen bg-[var(--color-background)] text-text-primary">
     <AppNav />
-    <RouterView />
+    <Transition name="route-fade" mode="out-in" appear>
+      <RouterView />
+    </Transition>
   </div>
 </template>
 
-
 <script setup lang="ts">
-import AppNav from './components/AppNav.vue'
+import AppNav from "./components/ui/AppNav.vue"
 </script>

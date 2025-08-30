@@ -1,0 +1,69 @@
+/* ========== ROUTE FADE (view-level) ========== */
+.route-fade-enter-active,
+.route-fade-leave-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.route-fade-enter-from,
+.route-fade-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* ========== LIST SLIDE (grid changes) ========== */
+.list-slide-move,            /* moved elements */
+.list-slide-enter-active,
+.list-slide-leave-active {
+  transition: all 240ms ease;
+}
+.list-slide-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+.list-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+}
+
+/* optional subtler variant */
+.list-fade-enter-active,
+.list-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+.list-fade-enter-from,
+.list-fade-leave-to {
+  opacity: 0;
+}
+
+/* ========== HOVER micro-interactions (sane defaults) ========== */
+.hover-scale {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.hover-scale:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* ========== REDUCED MOTION ========== */
+@media (prefers-reduced-motion: reduce) {
+  .route-fade-enter-active,
+  .route-fade-leave-active,
+  .list-slide-move,
+  .list-slide-enter-active,
+  .list-slide-leave-active,
+  .list-fade-enter-active,
+  .list-fade-leave-active {
+    transition: none !important;
+  }
+  .route-fade-enter-from,
+  .route-fade-leave-to,
+  .list-slide-enter-from,
+  .list-slide-leave-to,
+  .list-fade-enter-from,
+  .list-fade-leave-to {
+    transform: none !important;
+  }
+  .hover-scale,
+  .hover-scale:hover {
+    transition: none !important;
+    transform: none !important;
+  }
+}

@@ -1,15 +1,31 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from "vue-router"
 
-const routes = [
-  { path: '/', name: 'home', component: () => import('../pages/Home.vue') },
-  { path: '/search', name: 'search', component: () => import('../pages/Search.vue') },
-  { path: '/details/:id', name: 'details', component: () => import('../pages/Details.vue') },
-  { path: '/recommend', name: 'recommend', component: () => import('../pages/Recommend.vue') },
-  { path: '/mood', name: 'mood', component: () => import('../pages/Mood.vue') },
-  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../pages/NotFound.vue') },
-]
+const Home = () => import("../pages/Home.vue")
+const Search = () => import("../pages/Search.vue")
+const Mood = () => import("../pages/Mood.vue")
+const Details = () => import("../pages/Details.vue")
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes: [
+    { path: "/", name: "home", component: Home },
+    { path: "/search", name: "search", component: Search },
+    {
+      path: "/mood",
+      name: "mood",
+      component: Mood,
+      // expose query params as props if you like; optional
+      props: route => ({
+        qMood: route.query.mood,
+        qPage: route.query.page ? Number(route.query.page) : undefined,
+        qRegion: route.query.region
+      })
+    },
+    { path: "/details/:id", name: "details", component: Details, props: true },
+  ],
+  scrollBehavior() {
+    return { top: 0 }
+  },
 })
+
+export default router

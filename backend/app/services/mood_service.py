@@ -1,40 +1,52 @@
 from __future__ import annotations
 from typing import Dict, Any, List
-from ..clients.tmdb import TMDbClient
 
-# Simple mood -> TMDb genre IDs (expand later / LLM-powered)
-MOOD_TO_GENRES: Dict[str, List[int]] = {
-    "happy": [35, 10751, 16],            # Comedy, Family, Animation
-    "romantic": [10749, 35],             # Romance, Comedy
-    "thrilling": [53, 28],               # Thriller, Action
-    "adventurous": [12, 28, 14],         # Adventure, Action, Fantasy
-    "scary": [27, 53],                   # Horror, Thriller
-    "thoughtful": [18, 99],              # Drama, Documentary
-    "mystery": [9648, 80],               # Mystery, Crime
-    "sci-fi": [878, 12, 14],             # Sci-Fi, Adventure, Fantasy
-    "feel-good": [35, 10751],            # Comedy, Family
-    "epic": [12, 14, 28],                # Adventure, Fantasy, Action
+# TMDb genre IDs
+GENRE = {
+    "Action": 28, "Adventure": 12, "Animation": 16, "Comedy": 35, "Crime": 80,
+    "Documentary": 99, "Drama": 18, "Family": 10751, "Fantasy": 14, "History": 36,
+    "Horror": 27, "Music": 10402, "Mystery": 9648, "Romance": 10749, "Sci-Fi": 878,
+    "TV": 10770, "Thriller": 53, "War": 10752, "Western": 37,
 }
 
-def _genres_for_mood(mood: str) -> List[int]:
-    key = (mood or "").strip().lower()
-    return MOOD_TO_GENRES.get(key, [18])  # default Drama if unknown
+# === Canonical moods (ONLY these 10) =========================================
+# Happy, Family, Comedy, Action, Adventure, Drama, Thriller, Horror, Sci-Fi, Animated
+RULES: Dict[str, Dict[str, Any]] = {
+    "happy":     {"boostGenres": [GENRE["Comedy"], GENRE["Family"], GENRE["Romance"]], "suppressGenres": [GENRE["Horror"]]},
+    "family":    {"boostGenres": [GENRE["Family"], GENRE["Animation"], GENRE["Comedy"]]},
+    "comedy":    {"boostGenres": [GENRE["Comedy"]]},
+    "action":    {"boostGenres": [GENRE["Action"], GENRE["Thriller"]]},
+    "adventure": {"boostGenres": [GENRE["Adventure"], GENRE["Fantasy"], GENRE["Action"]]},
+    "drama":     {"boostGenres": [GENRE["Drama"]]},
+    "thriller":  {"boostGenres": [GENRE["Thriller"], GENRE["Mystery"]]},
+    "horror":    {"boostGenres": [GENRE["Horror"], GENRE["Thriller"]]},
+    "sci-fi":    {"boostGenres": [GENRE["Sci-Fi"], GENRE["Adventure"], GENRE["Action"]]},
+    "animated":  {"boostGenres": [GENRE["Animation"], GENRE["Family"]]},
+}
 
-def mood_recommendations_service(mood: str, page: int = 1, require_poster: bool = True, region: str | None = None) -> Dict[str, Any]:
-    client = TMDbClient()
-    genre_ids = _genres_for_mood(mood)
-    with_genres = ",".join(str(g) for g in genre_ids)
-    payload = client.discover_movies(with_genres=with_genres, page=page, region=region)
+# Common aliases → canonical keys
+ALIASES: Dict[str, str] = {
+    "sci fi": "sci-fi",
+    "scifi": "sci-fi",
+    "animation": "animated",
+    "kids": "family",
+    "funny": "comedy",
+    "exciting": "action",
+    "spooky": "horror",
+    # Allow exact canonical pass-through
+    **{k: k for k in RULES.keys()},
+}
 
-    normalized = [client.normalize_movie(m).__dict__ for m in payload.get("results", [])]
-    if require_poster:
-        normalized = [m for m in normalized if m.get("poster_path")]
+def supported_moods() -> List[str]:
+    # Return in a pleasant, consistent order for hints/UI
+    return ["happy","family","comedy","action","adventure","drama","thriller","horror","sci-fi","animated"]
 
-    return {
-        "mood": mood,
-        "genres": genre_ids,
-        "page": payload.get("page", page),
-        "total_pages": payload.get("total_pages", 0),
-        "total_results": len(normalized),
-        "results": normalized,
-    }
+def map_mood(mood: str | None) -> Dict[str, Any]:
+    m = (mood or "").strip().lower()
+    if not m:
+        raise KeyError("missing")
+    canon = ALIASES.get(m, m)
+    rule = RULES.get(canon)
+    if not rule:
+        raise KeyError(canon)
+    return {"__canon__": canon, **rule}
