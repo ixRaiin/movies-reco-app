@@ -1,4 +1,3 @@
-// src/services/api.ts
 const API_BASE = "/api"
 
 // ---------- Shared Types ----------
@@ -77,11 +76,31 @@ export async function getHealth(): Promise<Health> {
 }
 
 // ---------- Search ----------
-export type SearchResponse = TMDbListResponse<Movie>
+export type SearchMovie = {
+  id: number
+  title: string
+  poster_path: string | null
+  overview?: string | null
+  release_date?: string | null
+  vote_average?: number | null
+  vote_count?: number | null
+  popularity?: number | null
+}
 
-export async function searchMovies(q: string, page = 1): Promise<SearchResponse> {
-  const qs = new URLSearchParams({ q, page: String(page) })
-  return http<SearchResponse>(`/search?${qs.toString()}`)
+export type SearchResponse = {
+  page: number
+  total_pages: number
+  total_results: number
+  results: SearchMovie[]
+}
+
+export async function searchMovies(
+  q: string,
+  page = 1,
+  language = "en-US"
+): Promise<SearchResponse> {
+  const qs = new URLSearchParams({ q, page: String(page), language })
+  return http<SearchResponse>(`/search?${qs.toString()}`, { method: "GET" })
 }
 
 // ---------- Details ----------
@@ -131,6 +150,32 @@ export async function getMoodRecs(mood: string, page = 1, region?: string): Prom
   if (region) qs.set("region", region)
   return http<MoodResponse>(`/recommend/mood?${qs.toString()}`)
 }
+
+// ---------- Mood Analysis ----------
+export type AnalyzeMoodMovie = {
+  id: number
+  title: string
+  year?: number | null
+  overview?: string | null
+  poster_path?: string | null
+  genres?: string[]
+  release_date?: string | null
+}
+
+export type AnalyzeMoodResponse = {
+  reply: string
+  language: string
+  movies: AnalyzeMoodMovie[]
+}
+
+export async function analyzeMood(text: string, language = "en-US"): Promise<AnalyzeMoodResponse> {
+  return http<AnalyzeMoodResponse>("/mood/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, language }),
+  })
+}
+
 
 // ---------- Trending / Popular (paged) ----------
 export function getTrending(window: "day" | "week" = "day") {

@@ -1,255 +1,238 @@
-<!-- src/pages/Mood.vue -->
-<template>
-  <main class="min-h-screen bg-background text-text-primary">
-    <!-- =============== HERO / MOOD PICKER =============== -->
-    <section class="relative py-12 px-6 bg-radial-aurora text-center">
-      <h1 class="text-4xl md:text-5xl font-extrabold mb-3 text-transparent bg-clip-text bg-grad-cyan-violet">
-        Find movies by mood
-      </h1>
-      <p class="text-text-muted mb-8">Pick a vibe and let the neon guide you.</p>
-
-      <!-- Mood chips + region -->
-      <div class="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-        <button
-          v-for="m in moods"
-          :key="m.value"
-          type="button"
-          class="px-3 py-1.5 rounded-full text-sm transition overlay-glass hover:shadow-[var(--shadow-neon-cyan)]"
-          :class="mood === m.value ? 'text-neon-cyan border-[color:var(--color-neon-cyan)]' : 'text-text-secondary'"
-          @click="selectMood(m.value as MoodKey)"
-          :aria-pressed="mood === m.value ? 'true' : 'false'"
-        >
-          {{ m.label }}
-        </button>
-
-        <div class="h-6 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent mx-2 md:mx-3" aria-hidden="true"></div>
-
-        <!-- Region -->
-        <label class="sr-only" for="region">Region</label>
-        <select
-          id="region"
-          v-model="region"
-          class="overlay-glass px-3 py-1.5 rounded-full text-sm outline-none focus:ring-2 focus:ring-neon-violet"
-          @change="applyQuery({ region, page: 1 })"
-        >
-          <option value="">Region: auto</option>
-          <option v-for="r in regions" :key="r" :value="r">{{ r }}</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- =============== STATUS / PAGING =============== -->
-    <section class="px-6 py-6 max-w-7xl mx-auto">
-      <div v-if="mood" class="flex items-end justify-between gap-3">
-        <div>
-          <h2 class="text-2xl font-bold">
-            Picks for
-            <span class="text-transparent bg-clip-text bg-grad-violet-magenta">“{{ mood }}”</span>
-          </h2>
-          <p class="text-text-muted text-sm">
-            {{ totalText }}
-          </p>
-        </div>
-
-        <div class="inline-flex items-center gap-2">
-          <button
-            class="px-3 py-1.5 rounded-lg border border-white/10 text-sm
-                   hover:border-neon-cyan hover:shadow-[var(--shadow-neon-cyan)]
-                   transition disabled:opacity-50"
-            :disabled="page <= 1 || loading"
-            @click="goPage(page - 1)"
-          >
-            Prev
-          </button>
-          <span class="text-sm text-text-secondary">{{ page }} / {{ totalPages || 1 }}</span>
-          <button
-            class="px-3 py-1.5 rounded-lg border border-white/10 text-sm
-                   hover:border-neon-cyan hover:shadow-[var(--shadow-neon-cyan)]
-                   transition disabled:opacity-50"
-            :disabled="page >= totalPages || loading"
-            @click="goPage(page + 1)"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- =============== RESULTS =============== -->
-    <section class="px-6 pb-12 max-w-7xl mx-auto">
-      <!-- Loading -->
-      <div v-if="loading" class="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        <div v-for="n in 10" :key="n" class="aspect-[2/3] rounded-2xl bg-white/5 animate-pulse" />
-      </div>
-
-      <!-- Grid: CLEAN CARDS (poster + title only) -->
-      <transition name="fade" mode="out-in">
-        <div
-          v-if="results.length && !loading"
-          key="grid"
-          class="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-        >
-          <div
-            v-for="m in results"
-            :key="m.id"
-            class="cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
-            @click="openDetails(m.id)"
-          >
-            <div class="relative overflow-hidden rounded-2xl w-full aspect-[2/3] bg-black/30">
-              <template v-if="posterUrl(m.poster_path)">
-                <img
-                  :src="posterUrl(m.poster_path, 'w342')!"
-                  :srcset="posterSrcsetHQ(m.poster_path)"
-                  sizes="(min-width: 1280px) 18vw, (min-width: 1024px) 22vw, (min-width: 768px) 30vw, 45vw"
-                  width="342" height="513"
-                  :alt="`${m.title} poster`"
-                  class="w-full h-full object-cover rounded-2xl"
-                  loading="lazy" decoding="async" referrerpolicy="no-referrer"
-                />
-              </template>
-              <div v-else class="w-full h-full grid place-items-center text-text-muted">No poster</div>
-            </div>
-            <h3 class="mt-3 text-center font-semibold text-base md:text-lg leading-snug line-clamp-2">
-              {{ m.title }}
-            </h3>
-          </div>
-        </div>
-
-        <!-- Empty -->
-        <div v-else-if="mood && !loading" key="empty" class="overlay-glass p-8 text-center rounded-xl max-w-md mx-auto">
-          <p class="text-4xl mb-3">✨</p>
-          <p class="text-text-muted">No matches for this mood. Try another vibe.</p>
-        </div>
-
-        <!-- Idle -->
-        <div v-else key="idle" class="overlay-glass p-8 text-center rounded-xl max-w-md mx-auto text-text-muted">
-          Pick a mood to see recommendations.
-        </div>
-      </transition>
-
-      <!-- Error -->
-      <div v-if="error" class="mt-6 overlay-glass p-4 rounded-lg text-red-400">
-        ❌ {{ error }}
-      </div>
-    </section>
-  </main>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue"
-import { useRoute, useRouter } from "vue-router"
-import { getMoodRecs, type Movie } from "../services/api"
-import { posterUrl } from "../lib/img"
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import MoodFilter from '@/components/mood/MoodFilter.vue'
+import { getMoodRecs, type Movie, type MoodResponse } from '@/services/api'
 
-const route = useRoute()
-const router = useRouter()
+/** height of your sticky navbar (px) */
+const NAV_OFFSET = 84
 
-// Single source of truth for moods
-const moods = [
-  { value: "happy",     label: "Happy" },
-  { value: "family",    label: "Family" },
-  { value: "comedy",    label: "Comedy" },
-  { value: "action",    label: "Action" },
-  { value: "adventure", label: "Adventure" },
-  { value: "drama",     label: "Drama" },
-  { value: "thriller",  label: "Thriller" },
-  { value: "horror",    label: "Horror" },
-  { value: "sci-fi",    label: "Sci-Fi" },
-  { value: "animated",  label: "Animated" },
-] as const
+type MoodSlug = 'happy' | 'sad' | 'romantic' | 'thriller' | 'sci-fi' | 'action' | 'adventure' | 'horror'
+type SortKey = 'featured' | 'newest' | 'rating' | 'popularity' | 'title'
 
-// Derive union type from moods array
-type MoodKey = typeof moods[number]["value"]
+const MOODS: Array<{ slug: MoodSlug; label: string; icon?: string }> = [
+  { slug: 'happy',     label: 'Happy',     icon: '😊' },
+  { slug: 'sad',       label: 'Sad',       icon: '🫶' },
+  { slug: 'romantic',  label: 'Romantic',  icon: '💗' },
+  { slug: 'thriller',  label: 'Thriller',  icon: '🗝️' },
+  { slug: 'sci-fi',    label: 'Sci-Fi',    icon: '🛸' },
+  { slug: 'action',    label: 'Action',    icon: '⚡' },
+  { slug: 'adventure', label: 'Adventure', icon: '🏔️' },
+  { slug: 'horror',    label: 'Horror',    icon: '👻' },
+]
 
-const regions = ["US", "GB", "CA", "AE", "KW", "DE", "FR", "IN"]
+/* ---------------- state ---------------- */
+const activeMood = ref<MoodSlug>('happy')
+const textFilter = ref('')
+const yearMin = ref(2000)
+const yearMax = ref(new Date().getFullYear())
+const hideSequels = ref(true)
+const sortBy = ref<SortKey>('featured')
 
-const mood = ref<MoodKey | "">("")
-const region = ref<string>("")
+const pool = ref<Movie[]>([])
 const page = ref(1)
 const totalPages = ref(0)
-const results = ref<Movie[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const totalText = computed(() =>
-  results.value.length
-    ? `${results.value.length} results • page ${page.value}${totalPages.value ? ` of ${totalPages.value}` : ""}`
-    : "No results yet"
-)
-
-function posterSrcsetHQ(path?: string | null) {
-  if (!path) return undefined
-  const s1 = posterUrl(path, "w342")
-  const s2 = posterUrl(path, "w500")
-  return `${s1} 1x, ${s2} 2x`
-}
-
-function openDetails(id: number) {
-  router.push({ name: "details", params: { id } })
-}
-
-function applyQuery(q: { mood?: string | null; page?: number | null; region?: string | null }) {
-  const next = new URLSearchParams(route.query as Record<string, string>)
-  if (q.mood !== undefined) next.set("mood", q.mood ?? "")
-  if (q.page !== undefined) next.set("page", q.page ? String(q.page) : "1")
-  if (q.region !== undefined) {
-    if (q.region) next.set("region", q.region)
-    else next.delete("region")
+/* ---------------- fetch ---------------- */
+async function fetchMood(reset = false) {
+  if (loading.value) return
+  if (reset) {
+    page.value = 1
+    pool.value = []
+    totalPages.value = 0
+    error.value = null
   }
-  if (!next.get("mood")) next.delete("mood")
-  router.push({ name: "mood", query: Object.fromEntries(next.entries()) })
-}
-
-async function fetchMood() {
-  if (!mood.value) return
   loading.value = true
-  error.value = null
-  results.value = []
   try {
-    const res = await getMoodRecs(mood.value, page.value, region.value || undefined)
-    results.value = res.results
-    totalPages.value = res.total_pages || 0
+    const res: MoodResponse = await getMoodRecs(activeMood.value, page.value)
+    const items = (res?.results || []).filter(m => m?.id && m?.poster_path)
+    pool.value = reset ? items : pool.value.concat(items)
+    totalPages.value = res?.total_pages || 1
   } catch (e: any) {
-    error.value = e?.message || "Failed to load mood recommendations"
+    error.value = e?.message || 'Failed to fetch mood results.'
   } finally {
     loading.value = false
   }
 }
-
-function selectMood(m: MoodKey) {
-  if (mood.value === m) return
-  applyQuery({ mood: m, page: 1 })
+function loadMore() {
+  if (!loading.value && page.value < totalPages.value) {
+    page.value += 1
+    fetchMood(false)
+  }
 }
 
-function goPage(p: number) {
-  const np = Math.max(1, p)
-  applyQuery({ page: np })
+/* ---------------- filters & intent ---------------- */
+const G = { DRAMA: 18, COMEDY: 35, HORROR: 27, ROMANCE: 10749, SCIFI: 878 }
+
+function hasGenre(m: Movie, id: number) {
+  const ids = (m as any).genre_ids as number[] | undefined
+  return Array.isArray(ids) && ids.includes(id)
+}
+function includesAny(txt: string, arr: string[]) {
+  const t = txt.toLowerCase()
+  return arr.some(k => t.includes(k))
 }
 
-function refreshFromRoute() {
-  const qm = String(route.query.mood || "")
-  const qp = Number(route.query.page || 1)
-  const qr = String(route.query.region || "")
+function matchesIntent(m: Movie, mood: MoodSlug) {
+  const title = m.title || ''
+  const overview = (m as any).overview || ''
+  const blob = `${title} ${overview}`.toLowerCase()
 
-  // Narrow to known moods
-  const supported = moods.map(m => m.value) as readonly string[]
-  mood.value = (qm && supported.includes(qm)) ? (qm as MoodKey) : ""
-  page.value = Number.isFinite(qp) && qp > 0 ? qp : 1
-  region.value = qr || ""
-  if (mood.value) fetchMood()
+  switch (mood) {
+    case 'romantic': {
+      const romance = ['romance','romantic','love','lovers','relationship','wedding','bride','valentine','soulmate','honeymoon','heartwarming']
+      const hit = includesAny(blob, romance)
+      const isRomance = hasGenre(m, G.ROMANCE)
+      const isRomCom = hasGenre(m, G.COMEDY) && hit
+      const isHorror = hasGenre(m, G.HORROR)
+      if (isHorror && !(isRomance || isRomCom || hit)) return false
+      return isRomance || isRomCom || hit
+    }
+    case 'sad': {
+      const positiveStruggle = ['inspire','inspiring','uplifting','hope','resilience','overcome','overcoming','survive','survival','perseverance','underdog','dream','true story','biographical','based on a true story','redemption','heartwarming']
+      const bleak = ['slasher','serial killer','possession','gore','massacre']
+      if (includesAny(blob, bleak)) return false
+      if (hasGenre(m, G.HORROR)) return false
+      const dramaish = hasGenre(m, G.DRAMA) || includesAny(blob, ['drama'])
+      return includesAny(blob, positiveStruggle) || dramaish
+    }
+    case 'sci-fi': {
+      const scifi = ['sci-fi','science fiction','space','spaceship','alien','android','robot','future','futuristic','time travel','time-travel','multiverse','cyberpunk','dystopia','post-apocalyptic','galaxy','planet']
+      return hasGenre(m, G.SCIFI) || includesAny(blob, scifi)
+    }
+    default:
+      return true
+  }
 }
 
+function withinYear(m: Movie) {
+  const y = parseInt((m as any).year || (m as any).release_date?.slice(0, 4) || '', 10)
+  if (Number.isNaN(y)) return true
+  return y >= yearMin.value && y <= yearMax.value
+}
+function textMatch(m: Movie) {
+  const q = textFilter.value.trim().toLowerCase()
+  if (!q) return true
+  const t = (m.title || '').toLowerCase()
+  const ov = ((m as any).overview || '').toLowerCase()
+  return t.includes(q) || ov.includes(q)
+}
+function isObviousSequel(t: string) {
+  const s = (t || '').toLowerCase()
+  const words = ['part ','chapter ','episode ','season ','sequel','remake','reboot']
+  const roman = /\b(ii|iii|iv|v|vi|vii|viii|ix|x)\b/i
+  const numeric = /\b\d{1,2}\b/
+  return words.some(w => s.includes(w)) || roman.test(s) || numeric.test(s)
+}
+
+function applyFilters(arr: Movie[]) {
+  let out = arr.filter(m => matchesIntent(m, activeMood.value))
+  if (hideSequels.value) out = out.filter(m => !isObviousSequel(m.title || ''))
+  out = out.filter(withinYear).filter(textMatch)
+
+  switch (sortBy.value) {
+    case 'newest':
+      out = [...out].sort((a, b) => ((b as any).release_date || '').localeCompare((a as any).release_date || ''))
+      break
+    case 'rating':
+      out = [...out].sort((a: any, b: any) => (b.vote_average || 0) - (a.vote_average || 0))
+      break
+    case 'popularity':
+      out = [...out].sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0))
+      break
+    case 'title':
+      out = [...out].sort((a, b) => (a.title || '').localeCompare(b.title || ''))
+      break
+    default:
+      break
+  }
+  return out
+}
+
+const visible = computed(() => applyFilters(pool.value))
+
+/* ---------------- watchers/lifecycle ---------------- */
+watch(activeMood, () => fetchMood(true))
 onMounted(() => {
-  refreshFromRoute()
+  fetchMood(true)
+  window.addEventListener('scroll', onScroll, { passive: true })
 })
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll as any)
+})
+function onScroll() {
+  const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 1200
+  if (nearBottom) loadMore()
+}
 
-watch(() => route.fullPath, () => {
-  refreshFromRoute()
-})
+const moods = MOODS
 </script>
 
+<template>
+  <main class="max-w-7xl mx-auto px-4 pb-24">
+    <!-- header -->
+    <header class="pt-8 mb-6">
+      <h1 class="text-3xl font-extrabold heading-pop">Mood Browser</h1>
+    </header>
 
-<style>
-.fade-enter-active, .fade-leave-active { transition: opacity .2s ease, transform .2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(6px); }
-</style>
+    <div class="grid grid-cols-12 gap-6">
+      <!-- sticky sidebar -->
+      <div class="col-span-12 md:col-span-3">
+        <MoodFilter
+          :moods="moods"
+          v-model:activeMood="activeMood"
+          v-model:text="textFilter"
+          v-model:yearMin="yearMin"
+          v-model:yearMax="yearMax"
+          v-model:hideSequels="hideSequels"
+          v-model:sortBy="sortBy"
+          :navOffset="NAV_OFFSET"
+        />
+      </div>
+
+      <!-- results -->
+      <section class="col-span-12 md:col-span-9">
+        <div v-if="error" class="text-red-300 mb-4">{{ error }}</div>
+
+        <div
+          class="grid gap-6"
+          :class="{
+            'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5': true
+          }"
+        >
+          <RouterLink
+            v-for="m in visible"
+            :key="m.id"
+            :to="`/details/${m.id}`"
+            class="tile row-tile group"
+          >
+            <img
+              class="hero-img"
+              :alt="m.title"
+              :src="`https://image.tmdb.org/t/p/w500${m.poster_path}`"
+              loading="lazy"
+            />
+            <div class="mt-2 text-sm text-white/90 truncate">{{ m.title }}</div>
+            <div class="text-xs text-white/50">
+              {{ (m as any).year || (m as any).release_date?.slice(0,4) || '' }}
+            </div>
+          </RouterLink>
+        </div>
+
+        <!-- load more -->
+        <div class="flex justify-center mt-10" v-if="!loading && page < totalPages">
+          <button
+            class="px-4 py-2 rounded-lg bg-white/10 border border-white/15 hover:bg-white/15 transition"
+            @click="loadMore"
+          >
+            Load more
+          </button>
+        </div>
+
+        <div class="text-center text-white/60 mt-10" v-if="loading">Loading…</div>
+        <div class="text-center text-white/60 mt-10" v-if="!loading && !visible.length">No results.</div>
+      </section>
+    </div>
+  </main>
+</template>

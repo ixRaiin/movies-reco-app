@@ -1,134 +1,106 @@
-<template>
-  <div class="min-h-screen bg-background text-text-primary">
-    <!-- Hero / Top 10 -->
-    <section class="relative py-10 px-6 bg-radial-aurora">
-      <div class="flex items-baseline justify-between">
-        <h1 class="text-5xl font-extrabold mb-6 text-transparent bg-clip-text bg-grad-cyan-violet">
-          Top 10 Today
-        </h1>
-        <div class="flex gap-2">
-          <button
-            class="px-3 py-1 rounded border border-transparent hover:border-neon-cyan hover:shadow-[var(--shadow-neon-cyan)] transition"
-            :class="{ 'text-neon-cyan border-neon-cyan': window === 'day' }"
-            @click="switchWindow('day')"
-          >
-            Day
-          </button>
-          <button
-            class="px-3 py-1 rounded border border-transparent hover:border-neon-cyan hover:shadow-[var(--shadow-neon-cyan)] transition"
-            :class="{ 'text-neon-cyan border-neon-cyan': window === 'week' }"
-            @click="switchWindow('week')"
-          >
-            Week
-          </button>
-        </div>
-      </div>
-
-      <!-- Top 10 Carousel -->
-      <div class="relative">
-        <div class="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-          <div
-            v-for="(movie, index) in top10"
-            :key="movie.id"
-            class="relative snap-start flex-shrink-0 w-44 md:w-52 lg:w-60 cursor-pointer transition-transform duration-300 hover:scale-105"
-            @click="$router.push({ name: 'details', params: { id: movie.id } })"
-          >
-            <!-- Rank Number -->
-            <span class="absolute -left-6 top-4 text-7xl font-black text-neon-cyan/20 select-none">
-              {{ index + 1 }}
-            </span>
-
-            <!-- Poster Card -->
-            <div class="overlay-glass relative overflow-hidden rounded-2xl">
-              <img
-                v-if="posterUrl(movie.poster_path, 'w342')"
-                :src="posterUrl(movie.poster_path, 'w342')!"
-                :alt="movie.title"
-                class="w-full h-72 object-cover rounded-2xl"
-                loading="lazy"
-                referrerpolicy="no-referrer"
-              />
-              <div v-else class="w-full h-72 flex items-center justify-center text-text-muted">
-                No poster
-              </div>
-            </div>
-            <h3 class="mt-3 text-center font-semibold text-base md:text-lg line-clamp-2">
-              {{ movie.title }}
-            </h3>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Trending/Popular -->
-    <section class="py-10 px-6 space-y-6">
-      <div class="flex items-center justify-between">
-        <h2 class="text-5xl font-extrabold text-transparent bg-clip-text bg-grad-violet-magenta">
-          Trending Today
-        </h2>
-        <button
-          class="px-3 py-1 rounded border hover:border-neon-violet hover:shadow-[var(--shadow-neon-violet)] transition"
-          @click="refreshPopular"
-        >
-          Refresh Popular
-        </button>
-      </div>
-
-      <div class="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
-        <div
-          v-for="movie in popular"
-          :key="movie.id"
-          class="snap-start flex-shrink-0 w-44 md:w-52 lg:w-60 cursor-pointer transition-transform duration-300 hover:scale-105"
-          @click="$router.push({ name: 'details', params: { id: movie.id } })"
-        >
-          <!-- Poster Card -->
-          <div class="relative overflow-hidden rounded-2xl">
-            <img
-              v-if="posterUrl(movie.poster_path, 'w342')"
-              :src="posterUrl(movie.poster_path, 'w342')!"
-              :alt="movie.title"
-              class="w-full h-72 object-cover rounded-2xl"
-              loading="lazy"
-              referrerpolicy="no-referrer"
-            />
-            <div v-else class="w-full h-72 flex items-center justify-center text-text-muted">
-              No poster
-            </div>
-          </div>
-
-          <!-- Title Only -->
-          <h3 class="mt-3 text-center font-semibold text-base md:text-lg line-clamp-2">
-            {{ movie.title }}
-          </h3>
-        </div>
-      </div>
-    </section>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
-import { posterUrl } from "../lib/img"
-import { getTrending, getPopular, type Movie } from "../services/api"
+import { ref, onMounted, computed } from 'vue'
+import HeroCarousel from '@/components/home/HeroCarousel.vue'
+import ScrollableRow from '@/components/common/ScrollableRow.vue'
+import { getTrending, getPopular } from '@/services/api'
 
-const window = ref<"day" | "week">("day")
-const top10 = ref<Movie[]>([])
+type Movie = { id:number; title:string; poster_path:string | null }
+
+// UI state
+const windowRange = ref<'day' | 'week'>('day')
+const loadingTrend = ref(false)
+const loadingPopular = ref(false)
+const error = ref<string | null>(null)
+
+// Data
+const trending = ref<Movie[]>([])
 const popular = ref<Movie[]>([])
 
+// Derived
+const topTen = computed<Movie[]>(() => trending.value.slice(0, 10))
+
 async function loadTrending() {
-  const data = await getTrending(window.value)
-  top10.value = data.results
+  loadingTrend.value = true
+  try {
+    const res = await getTrending(windowRange.value)
+    trending.value = (res?.results ?? []) as Movie[]
+  } catch (e: any) {
+    error.value = e?.message || 'Failed to load trending.'
+    trending.value = []
+  } finally {
+    loadingTrend.value = false
+  }
 }
-async function refreshPopular() {
-  const data = await getPopular()
-  popular.value = data.results
+
+async function loadPopular() {
+  loadingPopular.value = true
+  try {
+    const res = await getPopular()
+    popular.value = (res?.results ?? []) as Movie[]
+  } catch (e: any) {
+    error.value = e?.message || 'Failed to load popular.'
+    popular.value = []
+  } finally {
+    loadingPopular.value = false
+  }
 }
-function switchWindow(w: "day" | "week") {
-  window.value = w
+
+function switchWindow(w: 'day' | 'week') {
+  if (windowRange.value === w) return
+  windowRange.value = w
   loadTrending()
 }
 
 onMounted(async () => {
-  await Promise.all([loadTrending(), refreshPopular()])
+  await Promise.allSettled([loadTrending(), loadPopular()])
 })
 </script>
+
+<template>
+  <!-- No local background; global fixed neon gradient is applied via #app::before -->
+  <main class="px-4 sm:px-6 py-4 space-y-6">
+
+    <!-- Header / Day-Week toggle (compact to save vertical space) -->
+    <div class="flex items-center justify-between">
+      <h1 class="heading-brand text-2xl sm:text-3xl font-extrabold">Discover</h1>
+      <div class="flex gap-2">
+        <button
+          class="px-3 py-1 rounded border border-transparent hover:border-[color:var(--neon-cyan)]/60 hover:shadow-[0_0_18px_rgba(126,233,255,.25)] transition"
+          :class="{ 'text-cyan-300 border-[color:var(--neon-cyan)]/60': windowRange === 'day' }"
+          @click="switchWindow('day')"
+        >
+          Day
+        </button>
+        <button
+          class="px-3 py-1 rounded border border-transparent hover:border-[color:var(--neon-cyan)]/60 hover:shadow-[0_0_18px_rgba(126,233,255,.25)] transition"
+          :class="{ 'text-cyan-300 border-[color:var(--neon-cyan)]/60': windowRange === 'week' }"
+          @click="switchWindow('week')"
+        >
+          Week
+        </button>
+      </div>
+    </div>
+
+    <!-- Top 10 (compact paddings; overlay arrows handled inside component) -->
+    <div v-if="loadingTrend" class="grid gap-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-for="n in 10" :key="n" class="rounded-2xl h-64 animate-pulse bg-white/5"></div>
+    </div>
+    <HeroCarousel v-else :items="topTen" />
+
+    <!-- Popular Now -->
+    <div v-if="loadingPopular" class="grid gap-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div v-for="n in 10" :key="n" class="rounded-2xl h-64 animate-pulse bg-white/5"></div>
+    </div>
+    <ScrollableRow v-else :items="popular" title="Popular Now" />
+
+    <!-- Trending Today / This Week -->
+    <ScrollableRow
+      v-if="!loadingTrend && trending.length"
+      :items="trending"
+      :title="`Trending • ${windowRange === 'day' ? 'Today' : 'This Week'}`"
+    />
+
+    <!-- Error (non-blocking) -->
+    <p v-if="error" role="alert" class="text-sm text-red-300">{{ error }}</p>
+  </main>
+</template>

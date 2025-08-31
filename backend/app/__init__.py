@@ -4,9 +4,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from .core.config import load_config
 from .core.errors import install_error_handlers, err
-from .api.routes import bp as api_bp
 from .core.ratelimit import is_allowed
 from .clients.tmdb import refresh_tmdb_auth_from_env
+from .api.routes import bp as api_bp
+from .api.routes import mood_bp 
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 RATE_LIMIT = int(os.getenv("RATE_LIMIT", "60"))
@@ -25,6 +26,7 @@ def create_app() -> Flask:
 
     # Mount API at /api
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(mood_bp, url_prefix='/api')
 
     # Simple health (optional, helpful for probes)
     @app.get("/health")
@@ -57,5 +59,4 @@ def create_app() -> Flask:
             resp.headers["X-RateLimit-Limit"] = str(RATE_LIMIT)
             resp.headers["X-RateLimit-Remaining"] = str(getattr(request, "remaining", RATE_LIMIT))
         return resp
-
     return app

@@ -1,4 +1,3 @@
-<!-- src/components/ui/AppNav.vue -->
 <template>
   <!-- Sticky neon-glass navbar -->
   <header
@@ -65,6 +64,15 @@
           >
             Quick Search
           </RouterLink>
+          <!-- Add the Chatbot Link here -->
+          <RouterLink
+            to="/chatbot"
+            class="px-3 py-1.5 rounded-lg border border-transparent
+                   hover:border-neon-cyan hover:shadow-[var(--shadow-neon-cyan)]
+                   text-sm transition"
+          >
+            Chatbot
+          </RouterLink>
         </div>
 
         <!-- Mobile menu button -->
@@ -122,7 +130,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { RouterLink } from 'vue-router' // 👈 add this for TS + template inference
+import { RouterLink } from 'vue-router'
 
 const open = ref(false)
 const scrolled = ref(false)
@@ -132,6 +140,7 @@ const navItems: NavItem[] = [
   { to: '/', label: 'Home' },
   { to: '/search', label: 'Search' },
   { to: '/mood', label: 'Mood' },
+  { to: '/chatbot', label: 'Chatbot' },
 ]
 
 function onScroll() {
@@ -140,9 +149,3 @@ function onScroll() {
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
 onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 </script>
-
-<style>
-/* subtle drop animation for mobile menu */
-.fade-enter-active, .fade-leave-active { transition: opacity .15s ease, transform .15s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-4px); }
-</style>

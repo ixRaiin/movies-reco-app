@@ -4,6 +4,7 @@ const Home = () => import("../pages/Home.vue")
 const Search = () => import("../pages/Search.vue")
 const Mood = () => import("../pages/Mood.vue")
 const Details = () => import("../pages/Details.vue")
+const Chatbot = () => import("../pages/Chatbot.vue")
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,7 +15,6 @@ const router = createRouter({
       path: "/mood",
       name: "mood",
       component: Mood,
-      // expose query params as props if you like; optional
       props: route => ({
         qMood: route.query.mood,
         qPage: route.query.page ? Number(route.query.page) : undefined,
@@ -22,6 +22,7 @@ const router = createRouter({
       })
     },
     { path: "/details/:id", name: "details", component: Details, props: true },
+    { path: "/chatbot", name: "chatbot", component: Chatbot }
   ],
   scrollBehavior() {
     return { top: 0 }
